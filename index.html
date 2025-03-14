@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sunset Task Manager</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@300;400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="music-controls">
+            <button id="toggleMusic" class="music-button">
+                <i class="fas fa-music"></i>
+            </button>
+        </div>
+        
+        <div class="timer-section">
+            <div class="timer-container">
+                <i class="fas fa-sun"></i>
+                <div class="timer">10:00</div>
+                <button id="startTimer" class="timer-button">Start</button>
+                <div class="timer-title">Time your sessions!</div>
+            </div>
+            
+            <div class="completion-grid">
+                <div class="grid-row">
+                    <div class="grid-cell" data-cell-id="1"></div>
+                    <div class="grid-cell" data-cell-id="2"></div>
+                    <div class="grid-cell" data-cell-id="3"></div>
+                    <div class="grid-cell" data-cell-id="4"></div>
+                    <div class="grid-cell" data-cell-id="5"></div>
+                    <div class="grid-cell" data-cell-id="6"></div>
+                </div>
+                <div class="grid-row">
+                    <div class="grid-cell" data-cell-id="7"></div>
+                    <div class="grid-cell" data-cell-id="8"></div>
+                    <div class="grid-cell" data-cell-id="9"></div>
+                    <div class="grid-cell" data-cell-id="10"></div>
+                    <div class="grid-cell" data-cell-id="11"></div>
+                    <div class="grid-cell" data-cell-id="12"></div>
+                </div>
+                <div class="grid-row">
+                    <div class="grid-cell" data-cell-id="13"></div>
+                    <div class="grid-cell" data-cell-id="14"></div>
+                    <div class="grid-cell" data-cell-id="15"></div>
+                    <div class="grid-cell" data-cell-id="16"></div>
+                    <div class="grid-cell" data-cell-id="17"></div>
+                    <div class="grid-cell" data-cell-id="18"></div>
+                </div>
+                <div class="grid-row">
+                    <div class="grid-cell" data-cell-id="19"></div>
+                    <div class="grid-cell" data-cell-id="20"></div>
+                    <div class="grid-cell" data-cell-id="21"></div>
+                    <div class="grid-cell" data-cell-id="22"></div>
+                    <div class="grid-cell" data-cell-id="23"></div>
+                    <div class="grid-cell" data-cell-id="24"></div>
+                </div>
+                <div class="completion-grid-title">Track your sessions!</div>
+            </div>
+            
+            <div class="task-counter-container">
+                <i class="fas fa-moon"></i>
+                <div class="counter" id="completedTasksCounter">0</div>
+                <div class="counter-title">Tasks completed!</div>
+            </div>
+        </div>
+        
+        <div class="content-container">
+            <div class="tasks-column">
+                <div class="tasks-container" id="tasksList">
+                    <!-- Tasks will be added here dynamically -->
+                </div>
+                
+                <div class="input-container">
+                    <input type="text" id="taskInput" placeholder="Add a new task...">
+                    <button id="addTask">Add</button>
+                </div>
+            </div>
+            
+            <div class="notes-column">
+                <div class="memo-section">
+                    <h3>Oh the chaos! Current thoughts:</h3>
+                    <div class="memos-container" id="memosList">
+                        <!-- Memos will be added here dynamically -->
+                    </div>
+                    <div class="memo-input-container">
+                        <textarea id="memoInput" placeholder="Type here..."></textarea>
+                        <button id="addMemo">Add Note</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html> 
