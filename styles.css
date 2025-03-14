@@ -448,13 +448,11 @@ body {
 .memo-item:nth-child(odd) {
     margin-left: 0;
     margin-right: auto;
-    background: var(--light-green);
 }
 
 .memo-item:nth-child(even) {
     margin-left: auto;
     margin-right: 0;
-    background: var(--light-blue);
 }
 
 .memo-item.editing {

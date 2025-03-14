@@ -393,8 +393,8 @@ function findTaskWrapper(element) {
 class Memo {
     constructor(text, index = 0) {
         this.text = text;
-        this.index = index; // Keep track of original position for color
-        this.isEven = index % 2 === 0; // Store whether the memo was originally in an even position
+        this.index = index;
+        this.isEven = index % 2 === 0;  // Set even/odd status based on initial index
         this.element = this.createMemoElement();
         this.isEditing = false;
     }
@@ -706,7 +706,8 @@ function addTask() {
 function addMemo() {
     const text = memoInput.value.trim();
     if (text) {
-        const memo = new Memo(text);
+        const currentIndex = memos.length;  // Get the current length as the new index
+        const memo = new Memo(text, currentIndex);  // Pass the index to the constructor
         memos.push(memo);
         memosList.appendChild(memo.element);
         memoInput.value = '';
