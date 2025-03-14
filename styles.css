@@ -1,5 +1,5 @@
 :root {
-    --pale-pink: #E0F7FA;
+    --light-blue: #E0F7FA;
     --sunset-yellow: #FFD93D;
     --warm-orange: #FF9F43;
     --sage-green: #B8E4DA;
@@ -16,7 +16,7 @@
 }
 
 body {
-    background: linear-gradient(135deg, var(--pale-pink), var(--sunset-yellow), var(--warm-orange));
+    background: linear-gradient(135deg, var(--light-blue), var(--sunset-yellow), var(--warm-orange));
     min-height: 100vh;
     padding: 2rem;
 }
@@ -311,7 +311,7 @@ body {
 }
 
 .task-item.is-subtask {
-    background-color: var(--pale-pink);
+    background-color: var(--light-blue);
 }
 
 .task-checkbox {
@@ -454,7 +454,7 @@ body {
 .memo-item:nth-child(even) {
     margin-left: auto;
     margin-right: 0;
-    background: var(--pale-pink);
+    background: var(--light-blue);
 }
 
 .memo-item.editing {

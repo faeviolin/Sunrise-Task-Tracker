@@ -473,7 +473,7 @@ class Memo {
         if (this.isEven) {
             element.style.backgroundColor = 'var(--light-green)';
         } else {
-            element.style.backgroundColor = 'var(--pale-pink)';
+            element.style.backgroundColor = 'var(--light-blue)';
         }
     }
 
