@@ -107,11 +107,11 @@ body {
     transform: scale(1.05);
 }
 
-.timer-title, .counter-title, .completion-grid-title {
+.timer-title, .counter-title, .completion-grid-title, .sketch-title {
     margin-top: 1.5rem;
     text-align: center;
     font-size: 0.9rem;
-    color: var(--text-color);
+    color: #8a8a8a;
     font-weight: 600;
     opacity: 0.85;
     position: absolute;
@@ -128,7 +128,7 @@ body {
     color: var(--text-color);
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: center;
     position: relative;
     min-height: 220px;
     width: 180px;
@@ -143,7 +143,7 @@ body {
 .task-counter-container .counter {
     font-size: 3rem;
     font-weight: bold;
-    margin: 1rem 0;
+    margin: 0;
 }
 
 .completion-grid {
@@ -165,7 +165,7 @@ body {
     right: 0;
     text-align: center;
     font-size: 0.9rem;
-    color: var(--text-color);
+    color: #8a8a8a;
     font-weight: 600;
     opacity: 0.85;
     margin-top: 1rem;
@@ -496,9 +496,9 @@ body {
 }
 
 .task-instructions, .memo-instructions {
-    color: var(--text-color);
+    color: #8a8a8a;
     font-size: 0.9rem;
-    margin-top: -1rem;
+    margin-top: 1rem;
     margin-bottom: 1rem;
     text-align: center;
     opacity: 0.8;
@@ -506,4 +506,60 @@ body {
 
 .memo-instructions {
     margin-top: 1rem;
+}
+
+.sketch-container {
+    text-align: center;
+    padding: 1.5rem 1rem 2.5rem;
+    background: var(--light-green);
+    border-radius: 15px;
+    color: var(--text-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    min-height: 240px;
+    width: 240px;
+}
+
+.sketch-container i {
+    font-size: 1.2rem;
+    color: var(--warm-orange);
+    position: absolute;
+    top: 15px;
+    right: 40px;
+    z-index: 10;
+}
+
+#sketchCanvas {
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 10px;
+    cursor: crosshair;
+    margin: 0 auto;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    width: 220px;
+    height: 180px;
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    margin-bottom: 15px;
+}
+
+.reset-sketch-btn {
+    background: var(--warm-orange);
+    color: white;
+    border: none;
+    padding: 0.4rem 1.2rem;
+    border-radius: 15px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: transform 0.2s;
+    margin-top: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
+    display: block;
+}
+
+.reset-sketch-btn:hover {
+    transform: scale(1.05);
 } 

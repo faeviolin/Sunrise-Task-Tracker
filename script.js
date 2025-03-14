@@ -32,6 +32,15 @@ const timerEndSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-ala
 const popSound = new Audio('Assets/pop-clean-312648.mp3');
 popSound.volume = 0.7; // Adjust volume as needed
 
+// Sketch pad functionality
+const canvas = document.getElementById('sketchCanvas');
+const ctx = canvas.getContext('2d');
+let isDrawing = false;
+let lastX = 0;
+let lastY = 0;
+let points = [];
+const resetSketchButton = document.getElementById('resetSketch');
+
 // Load completion state from localStorage
 function loadCompletionState() {
     const savedState = localStorage.getItem('completionState');
@@ -744,6 +753,163 @@ function updateCompletedTasksCounter() {
     // Save the counter value to localStorage
     localStorage.setItem('completedTasksCount', completedTasks.toString());
 }
+
+// Set up the canvas
+function setupCanvas() {
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 2.5; // Slightly thinner line for better precision
+    ctx.strokeStyle = '#FF9F43'; // Use warm-orange color for drawing
+    clearCanvas();
+}
+
+// Clear the canvas
+function clearCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    points = [];
+}
+
+// Reset button handler
+resetSketchButton.addEventListener('click', clearCanvas);
+
+// Start drawing
+canvas.addEventListener('mousedown', (e) => {
+    isDrawing = true;
+    const rect = canvas.getBoundingClientRect();
+    lastX = e.clientX - rect.left;
+    lastY = e.clientY - rect.top;
+    
+    // Start new point collection for smoothing
+    points = [];
+    points.push({ x: lastX, y: lastY });
+});
+
+// Draw as mouse moves
+canvas.addEventListener('mousemove', draw);
+
+// Capture touch events for mobile
+canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const mouseEvent = new MouseEvent('mousedown', {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+    });
+    canvas.dispatchEvent(mouseEvent);
+});
+
+canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const mouseEvent = new MouseEvent('mousemove', {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+    });
+    canvas.dispatchEvent(mouseEvent);
+});
+
+canvas.addEventListener('touchend', () => {
+    const mouseEvent = new MouseEvent('mouseup');
+    canvas.dispatchEvent(mouseEvent);
+});
+
+// Handle drawing with smoothing
+function draw(e) {
+    if (!isDrawing) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const currentX = e.clientX - rect.left;
+    const currentY = e.clientY - rect.top;
+    
+    // Add point to collection with timestamp for velocity calculation
+    points.push({ 
+        x: currentX, 
+        y: currentY,
+        time: Date.now() 
+    });
+    
+    // Need at least 2 points to draw a line
+    if (points.length < 2) return;
+    
+    // Start fresh for this frame
+    ctx.beginPath();
+    
+    // Ultra smooth drawing with advanced Bezier curves
+    if (points.length < 3) {
+        // With only 2 points, just draw a line
+        ctx.moveTo(points[0].x, points[0].y);
+        ctx.lineTo(points[1].x, points[1].y);
+    } else {
+        // With 3+ points, draw a smooth curve with tension adjustment
+        
+        // Start at the first point
+        ctx.moveTo(points[0].x, points[0].y);
+        
+        // Calculate velocity for dynamic control point adjustment
+        const getVelocity = (p1, p2) => {
+            const timeDiff = p2.time - p1.time || 1;
+            const distance = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+            return distance / timeDiff;
+        };
+        
+        // For each set of points, calculate a smooth curve with tension
+        for (let i = 1; i < points.length - 2; i++) {
+            // Calculate velocity for dynamic tension
+            const velocity = getVelocity(points[i], points[i+1]);
+            const tension = Math.min(0.5, 0.2 + (1 / (velocity + 1)) * 0.3);
+            
+            // Control points for the Bezier curve with dynamic tension
+            const xc1 = points[i].x + (points[i+1].x - points[i-1].x) * tension;
+            const yc1 = points[i].y + (points[i+1].y - points[i-1].y) * tension;
+            const xc2 = points[i+1].x - (points[i+2].x - points[i].x) * tension;
+            const yc2 = points[i+1].y - (points[i+2].y - points[i].y) * tension;
+            
+            // Draw a Bezier curve through these points
+            ctx.bezierCurveTo(
+                xc1, yc1,
+                xc2, yc2,
+                points[i+1].x, points[i+1].y
+            );
+        }
+        
+        // Connect to the last point with a quadratic curve
+        const lastIndex = points.length - 1;
+        const secondLastIndex = points.length - 2;
+        
+        if (points[lastIndex] && points[secondLastIndex]) {
+            ctx.quadraticCurveTo(
+                points[secondLastIndex].x, 
+                points[secondLastIndex].y,
+                points[lastIndex].x, 
+                points[lastIndex].y
+            );
+        }
+    }
+    
+    ctx.stroke();
+    
+    // Limit points for performance while maintaining smoothness
+    if (points.length > 25) {
+        // Keep fewer points but ensure a smooth curve
+        points = points.slice(-12);
+    }
+}
+
+// Stop drawing
+canvas.addEventListener('mouseup', () => {
+    isDrawing = false;
+    // Start fresh for next stroke
+    points = [];
+});
+
+canvas.addEventListener('mouseout', () => {
+    isDrawing = false;
+    // Start fresh for next stroke
+    points = [];
+});
+
+// Initialize sketch pad
+setupCanvas();
 
 // Initialize
 updateTimerDisplay();
