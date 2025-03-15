@@ -5,6 +5,14 @@ let isTimerRunning = false;
 let completionState = {};
 let isMusicPlaying = false;
 let isEditingTimer = false;
+let lastTimestamp = 0;
+let timerStartTime = 0;
+
+// Add these variables at the top
+let savedTimerState = JSON.parse(localStorage.getItem('timerState') || '{}');
+timeLeft = savedTimerState.timeLeft || 10 * 60;
+isTimerRunning = savedTimerState.isTimerRunning || false;
+timerStartTime = savedTimerState.timerStartTime || 0;
 
 const timerDisplay = document.querySelector('.timer');
 const startTimerButton = document.getElementById('startTimer');
@@ -17,6 +25,7 @@ const addMemoButton = document.getElementById('addMemo');
 const memosList = document.getElementById('memosList');
 const gridCells = document.querySelectorAll('.grid-cell');
 const completedTasksCounter = document.getElementById('completedTasksCounter');
+const clearSunsButton = document.getElementById('clearSuns');
 
 // Show that timer is editable when inactive
 timerDisplay.classList.add('inactive');
@@ -40,6 +49,17 @@ let lastX = 0;
 let lastY = 0;
 let points = [];
 const resetSketchButton = document.getElementById('resetSketch');
+
+// Add focus input persistence
+const focusInput = document.querySelector('.focus-input');
+
+// Load saved focus
+focusInput.value = localStorage.getItem('dailyFocus') || '';
+
+// Save focus when it changes
+focusInput.addEventListener('input', () => {
+    localStorage.setItem('dailyFocus', focusInput.value);
+});
 
 // Load completion state from localStorage
 function loadCompletionState() {
@@ -88,6 +108,19 @@ gridCells.forEach(cell => {
     });
 });
 
+// Add click handler for Clear Suns button
+clearSunsButton.addEventListener('click', () => {
+    // Clear all suns from the grid
+    gridCells.forEach(cell => {
+        cell.classList.remove('filled');
+        cell.innerHTML = '';
+    });
+    
+    // Reset completion state
+    completionState = {};
+    saveCompletionState();
+});
+
 // Music toggle button
 toggleMusicButton.addEventListener('click', () => {
     isMusicPlaying = !isMusicPlaying;
@@ -112,36 +145,64 @@ function updateTimerDisplay() {
     }
 }
 
+function saveTimerState() {
+    localStorage.setItem('timerState', JSON.stringify({
+        timeLeft,
+        isTimerRunning,
+        timerStartTime
+    }));
+}
+
 function startTimer() {
-    if (isEditingTimer) return; // Don't start if we're editing
+    if (isEditingTimer) return;
     
     if (!isTimerRunning) {
         isTimerRunning = true;
-        timerDisplay.classList.remove('inactive'); // Remove inactive class
+        timerDisplay.classList.remove('inactive');
         startTimerButton.textContent = 'Pause';
-        timerId = setInterval(() => {
-            timeLeft--;
-            updateTimerDisplay();
-            if (timeLeft === 0) {
-                clearInterval(timerId);
-                isTimerRunning = false;
-                timerDisplay.classList.add('inactive'); // Add inactive class
-                startTimerButton.textContent = 'Start';
-                timeLeft = 10 * 60; // Reset to 10 minutes
-                updateTimerDisplay();
-                // Play timer end sound
-                timerEndSound.play().catch(error => {
-                    console.error("Timer sound play failed:", error);
-                });
-                alert('Time is up!');
-            }
-        }, 1000);
+        timerStartTime = Date.now() - ((10 * 60 - timeLeft) * 1000);
+        requestAnimationFrame(updateTimer);
     } else {
-        clearInterval(timerId);
         isTimerRunning = false;
-        timerDisplay.classList.add('inactive'); // Add inactive class
+        timerDisplay.classList.add('inactive');
         startTimerButton.textContent = 'Start';
     }
+    saveTimerState();
+}
+
+function updateTimer(timestamp) {
+    if (!isTimerRunning) return;
+    
+    const elapsedSeconds = Math.floor((Date.now() - timerStartTime) / 1000);
+    timeLeft = Math.max(0, (10 * 60) - elapsedSeconds);
+    
+    if (timeLeft === 0) {
+        isTimerRunning = false;
+        timerDisplay.classList.add('inactive');
+        startTimerButton.textContent = 'Start';
+        timeLeft = 10 * 60;
+        updateTimerDisplay();
+        saveTimerState();
+        
+        // Play both sounds when timer ends
+        popSound.currentTime = 0;
+        popSound.play().catch(error => {
+            console.error("Pop sound play failed:", error);
+        });
+        
+        setTimeout(() => {
+            timerEndSound.play().catch(error => {
+                console.error("Timer sound play failed:", error);
+            });
+            alert('Time is up!');
+        }, 50);
+        
+        return;
+    }
+    
+    updateTimerDisplay();
+    saveTimerState();
+    requestAnimationFrame(updateTimer);
 }
 
 // Make timer editable
@@ -229,6 +290,13 @@ class Task {
         
         this.element = this.createTaskElement();
         this.wrapper.appendChild(this.element);
+        
+        // Add double-click event listener for editing
+        this.element.addEventListener('dblclick', (e) => {
+            if (e.target.classList.contains('task-content')) {
+                this.startEditing(e.target);
+            }
+        });
     }
 
     createTaskElement() {
@@ -388,6 +456,53 @@ class Task {
 
         return taskDiv;
     }
+    
+    startEditing(contentElement) {
+        const currentText = contentElement.textContent;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentText;
+        input.className = 'task-edit-input';
+        input.style.cssText = `
+            width: 100%;
+            padding: 0.2rem;
+            border: none;
+            border-radius: 5px;
+            font-size: inherit;
+            font-family: inherit;
+            background: white;
+            outline: none;
+        `;
+        
+        contentElement.textContent = '';
+        contentElement.appendChild(input);
+        input.focus();
+        
+        const finishEditing = () => {
+            const newText = input.value.trim();
+            if (newText && newText !== currentText) {
+                this.text = newText;
+                contentElement.textContent = newText;
+                saveTasks();
+            } else {
+                contentElement.textContent = currentText;
+            }
+        };
+        
+        input.addEventListener('blur', finishEditing);
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                finishEditing();
+            }
+        });
+        
+        input.addEventListener('keyup', (e) => {
+            if (e.key === 'Escape') {
+                contentElement.textContent = currentText;
+            }
+        });
+    }
 }
 
 function findTaskWrapper(element) {
@@ -490,34 +605,70 @@ class Memo {
         this.isEditing = true;
         const content = this.element.querySelector('.memo-content');
         const currentText = content.textContent;
+        const currentHeight = content.offsetHeight;
+        
+        // Store the window's current scroll position
+        const windowScrollY = window.scrollY;
+        
+        // Store click coordinates
+        const clickEvent = window.event;
+        const clickX = clickEvent ? clickEvent.offsetX : null;
+        const clickY = clickEvent ? clickEvent.offsetY : null;
         
         const textarea = document.createElement('textarea');
         textarea.className = 'memo-edit-input';
         textarea.value = currentText;
-        textarea.style.width = '100%';
-        textarea.style.height = '100%';
-        textarea.style.minHeight = '100px';
-        textarea.style.border = 'none';
-        textarea.style.resize = 'none';
-        textarea.style.background = 'transparent';
-        textarea.style.fontFamily = 'inherit';
-        textarea.style.fontSize = 'inherit';
-        textarea.style.outline = 'none';
-        textarea.style.padding = '0';
-        textarea.style.margin = '0';
+        textarea.style.height = `${currentHeight}px`;
+        textarea.style.minHeight = `${currentHeight}px`;
         
         content.innerHTML = '';
         content.appendChild(textarea);
-        textarea.focus();
         
-        // Position cursor at the end of text
-        textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+        // Restore the window's scroll position
+        window.scrollTo(0, windowScrollY);
+        
+        // Focus without scrolling into view and position cursor
+        setTimeout(() => {
+            textarea.focus({preventScroll: true});
+            
+            if (clickX !== null && clickY !== null) {
+                // Get the approximate characters per line
+                const textareaWidth = textarea.offsetWidth;
+                const charWidth = 8; // Approximate width of a character in pixels
+                const charsPerLine = Math.floor(textareaWidth / charWidth);
+                
+                // Get clicked line based on Y position
+                const lineHeight = parseInt(getComputedStyle(textarea).lineHeight);
+                const clickedLine = Math.floor(clickY / lineHeight);
+                
+                // Get approximate character position in line based on X position
+                const clickedChar = Math.floor(clickX / charWidth);
+                
+                // Calculate total position
+                const lines = currentText.split('\n');
+                let position = 0;
+                
+                // Add length of previous lines
+                for (let i = 0; i < clickedLine && i < lines.length; i++) {
+                    position += lines[i].length + 1; // +1 for newline
+                }
+                
+                // Add position within current line
+                if (clickedLine < lines.length) {
+                    position += Math.min(clickedChar, lines[clickedLine].length);
+                }
+                
+                // Set cursor position
+                textarea.setSelectionRange(position, position);
+            }
+        }, 0);
         
         const finishEditing = () => {
             const newText = textarea.value.trim();
             if (newText) {
                 this.text = newText;
                 content.textContent = newText;
+                content.style.height = 'auto';
                 saveMemos();
             } else {
                 content.textContent = currentText;
@@ -821,30 +972,20 @@ function draw(e) {
     const currentX = e.clientX - rect.left;
     const currentY = e.clientY - rect.top;
     
-    // Add point to collection with timestamp for velocity calculation
     points.push({ 
         x: currentX, 
         y: currentY,
         time: Date.now() 
     });
     
-    // Need at least 2 points to draw a line
     if (points.length < 2) return;
     
-    // Start fresh for this frame
     ctx.beginPath();
     
-    // Ultra smooth drawing with advanced Bezier curves
     if (points.length < 3) {
-        // With only 2 points, just draw a line
         ctx.moveTo(points[0].x, points[0].y);
         ctx.lineTo(points[1].x, points[1].y);
     } else {
-        // With 3+ points, draw a smooth curve with tension adjustment
-        
-        // Start at the first point
-        ctx.moveTo(points[0].x, points[0].y);
-        
         // Calculate velocity for dynamic control point adjustment
         const getVelocity = (p1, p2) => {
             const timeDiff = p2.time - p1.time || 1;
@@ -888,9 +1029,7 @@ function draw(e) {
     
     ctx.stroke();
     
-    // Limit points for performance while maintaining smoothness
     if (points.length > 25) {
-        // Keep fewer points but ensure a smooth curve
         points = points.slice(-12);
     }
 }
@@ -898,22 +1037,28 @@ function draw(e) {
 // Stop drawing
 canvas.addEventListener('mouseup', () => {
     isDrawing = false;
-    // Start fresh for next stroke
     points = [];
 });
 
 canvas.addEventListener('mouseout', () => {
     isDrawing = false;
-    // Start fresh for next stroke
     points = [];
 });
 
-// Initialize sketch pad
-setupCanvas();
-
 // Initialize
-updateTimerDisplay();
-loadTasks();
-loadMemos();
-loadCompletionState();
-updateCompletedTasksCounter(); // Initialize counter when page loads 
+window.addEventListener('load', () => {
+    setupCanvas();
+    clearCanvas();
+    
+    // Resume timer if it was running
+    if (isTimerRunning) {
+        startTimerButton.textContent = 'Pause';
+        timerDisplay.classList.remove('inactive');
+        requestAnimationFrame(updateTimer);
+    }
+    updateTimerDisplay();
+    loadTasks();
+    loadMemos();
+    loadCompletionState();
+    updateCompletedTasksCounter();
+}); 

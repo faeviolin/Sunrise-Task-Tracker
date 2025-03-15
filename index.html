@@ -3,15 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sunrise Task Tracker</title>
+    <title>Sunset Task Manager</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@300;400;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
+        <div class="focus-input-container">
+            <input type="text" class="focus-input" placeholder="Today's focus...">
+        </div>
         <div class="music-controls">
             <button id="toggleMusic" class="music-button">
                 <i class="fas fa-music"></i>
@@ -26,51 +30,57 @@
                 <div class="timer-title">Time your sessions!</div>
             </div>
             
-            <div class="completion-grid">
-                <div class="grid-row">
-                    <div class="grid-cell" data-cell-id="1"></div>
-                    <div class="grid-cell" data-cell-id="2"></div>
-                    <div class="grid-cell" data-cell-id="3"></div>
-                    <div class="grid-cell" data-cell-id="4"></div>
-                    <div class="grid-cell" data-cell-id="5"></div>
-                    <div class="grid-cell" data-cell-id="6"></div>
-                </div>
-                <div class="grid-row">
-                    <div class="grid-cell" data-cell-id="7"></div>
-                    <div class="grid-cell" data-cell-id="8"></div>
-                    <div class="grid-cell" data-cell-id="9"></div>
-                    <div class="grid-cell" data-cell-id="10"></div>
-                    <div class="grid-cell" data-cell-id="11"></div>
-                    <div class="grid-cell" data-cell-id="12"></div>
-                </div>
-                <div class="grid-row">
-                    <div class="grid-cell" data-cell-id="13"></div>
-                    <div class="grid-cell" data-cell-id="14"></div>
-                    <div class="grid-cell" data-cell-id="15"></div>
-                    <div class="grid-cell" data-cell-id="16"></div>
-                    <div class="grid-cell" data-cell-id="17"></div>
-                    <div class="grid-cell" data-cell-id="18"></div>
-                </div>
-                <div class="grid-row">
-                    <div class="grid-cell" data-cell-id="19"></div>
-                    <div class="grid-cell" data-cell-id="20"></div>
-                    <div class="grid-cell" data-cell-id="21"></div>
-                    <div class="grid-cell" data-cell-id="22"></div>
-                    <div class="grid-cell" data-cell-id="23"></div>
-                    <div class="grid-cell" data-cell-id="24"></div>
-                </div>
-                <div class="completion-grid-title">Track your sessions!</div>
-            </div>
-            
             <div class="task-counter-container">
                 <div class="counter" id="completedTasksCounter">0</div>
-                <div class="counter-title">Total tasks completed!</div>
+                <div class="counter-title">Tasks Completed!</div>
             </div>
             
-            <div class="sketch-container">
-                <canvas id="sketchCanvas" width="240" height="180"></canvas>
-                <button class="reset-sketch-btn" id="resetSketch">Reset</button>
-                <div class="sketch-title">Take a sketch break! <i class="fas fa-pencil-alt"></i></div>
+            <div class="combined-container">
+                <div class="completion-grid">
+                    <div class="grid-row">
+                        <div class="grid-cell" data-cell-id="1"></div>
+                        <div class="grid-cell" data-cell-id="2"></div>
+                        <div class="grid-cell" data-cell-id="3"></div>
+                        <div class="grid-cell" data-cell-id="4"></div>
+                        <div class="grid-cell" data-cell-id="5"></div>
+                        <div class="grid-cell" data-cell-id="6"></div>
+                    </div>
+                    <div class="grid-row">
+                        <div class="grid-cell" data-cell-id="7"></div>
+                        <div class="grid-cell" data-cell-id="8"></div>
+                        <div class="grid-cell" data-cell-id="9"></div>
+                        <div class="grid-cell" data-cell-id="10"></div>
+                        <div class="grid-cell" data-cell-id="11"></div>
+                        <div class="grid-cell" data-cell-id="12"></div>
+                    </div>
+                    <div class="grid-row">
+                        <div class="grid-cell" data-cell-id="13"></div>
+                        <div class="grid-cell" data-cell-id="14"></div>
+                        <div class="grid-cell" data-cell-id="15"></div>
+                        <div class="grid-cell" data-cell-id="16"></div>
+                        <div class="grid-cell" data-cell-id="17"></div>
+                        <div class="grid-cell" data-cell-id="18"></div>
+                    </div>
+                    <div class="grid-row">
+                        <div class="grid-cell" data-cell-id="19"></div>
+                        <div class="grid-cell" data-cell-id="20"></div>
+                        <div class="grid-cell" data-cell-id="21"></div>
+                        <div class="grid-cell" data-cell-id="22"></div>
+                        <div class="grid-cell" data-cell-id="23"></div>
+                        <div class="grid-cell" data-cell-id="24"></div>
+                    </div>
+                    <div class="completion-grid-title">Track your sessions!</div>
+                </div>
+                
+                <div class="sketch-container">
+                    <canvas id="sketchCanvas" width="240" height="180"></canvas>
+                    <div class="sketch-title">Take a sketch break!</div>
+                </div>
+
+                <div class="buttons-container">
+                    <button class="clear-suns-btn" id="clearSuns">Clear Suns</button>
+                    <button class="reset-sketch-btn" id="resetSketch">Clear Drawing</button>
+                </div>
             </div>
         </div>
         
