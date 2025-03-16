@@ -363,6 +363,11 @@ class Task {
                 subtask.element.classList.remove('is-subtask');
             });
             
+            // If this is a subtask, update parent's buttons
+            if (this.isSubtask && this.parentId) {
+                updateParentTaskButtons(this.parentId);
+            }
+            
             this.wrapper.remove();
             saveTasks();
             updateCompletedTasksCounter();
@@ -376,10 +381,8 @@ class Task {
             taskDiv.appendChild(collapseButton);
         }
         
-        // Only add delete button to main tasks
-        if (!this.isSubtask) {
-            taskDiv.appendChild(deleteButton);
-        }
+        // Add delete button to all tasks
+        taskDiv.appendChild(deleteButton);
 
         // Drag and drop functionality for vertical reordering and subtask creation
         let startX = 0;
@@ -412,17 +415,12 @@ class Task {
                         this.wrapper.classList.add('is-subtask');
                         this.element.classList.add('is-subtask');
                         
-                        // Remove the delete button and collapse button
-                        const deleteBtn = this.element.querySelector('.task-delete');
+                        // Remove only the collapse button
                         const collapseBtn = this.element.querySelector('.task-collapse');
-                        if (deleteBtn) deleteBtn.remove();
                         if (collapseBtn) collapseBtn.remove();
                         
-                        // Show parent's collapse button
-                        const parentCollapseBtn = parentTask.element.querySelector('.task-collapse');
-                        if (parentCollapseBtn) {
-                            parentCollapseBtn.style.display = 'block';
-                        }
+                        // Update parent's buttons
+                        updateParentTaskButtons(parentId);
                         
                         saveTasks();
                     }
@@ -431,13 +429,30 @@ class Task {
             
             // If dragged significantly to the left and it's a subtask, make it a standalone task
             if (deltaX < -50 && this.isSubtask) {
+                const oldParentId = this.parentId;
                 this.isSubtask = false;
                 this.parentId = null;
                 this.wrapper.classList.remove('is-subtask');
                 this.element.classList.remove('is-subtask');
                 
-                // Add the delete button and collapse button back
-                if (!this.element.querySelector('.task-delete')) {
+                // Add the collapse button back
+                const collapseButton = document.createElement('button');
+                collapseButton.className = 'task-collapse';
+                collapseButton.innerHTML = '<i class="fas fa-chevron-down"></i>';
+                collapseButton.style.display = 'none';
+                collapseButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleSubtasks();
+                });
+                
+                // Insert collapse button before delete button if it exists, otherwise append it
+                const deleteBtn = this.element.querySelector('.task-delete');
+                if (deleteBtn) {
+                    this.element.insertBefore(collapseButton, deleteBtn);
+                } else {
+                    this.element.appendChild(collapseButton);
+                    
+                    // Add delete button if it doesn't exist
                     const deleteButton = document.createElement('button');
                     deleteButton.className = 'task-delete';
                     deleteButton.innerHTML = '<i class="fas fa-times"></i>';
@@ -449,26 +464,9 @@ class Task {
                     this.element.appendChild(deleteButton);
                 }
                 
-                const collapseButton = document.createElement('button');
-                collapseButton.className = 'task-collapse';
-                collapseButton.innerHTML = '<i class="fas fa-chevron-down"></i>';
-                collapseButton.style.display = 'none';
-                collapseButton.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.toggleSubtasks();
-                });
-                this.element.insertBefore(collapseButton, this.element.querySelector('.task-delete'));
-                
-                // Update old parent's collapse button visibility
-                if (this.parentId) {
-                    const oldParent = tasks.find(t => t.id === this.parentId);
-                    if (oldParent) {
-                        const remainingSubtasks = tasks.filter(t => t.parentId === oldParent.id);
-                        const parentCollapseBtn = oldParent.element.querySelector('.task-collapse');
-                        if (parentCollapseBtn && remainingSubtasks.length === 0) {
-                            parentCollapseBtn.style.display = 'none';
-                        }
-                    }
+                // Update old parent's buttons
+                if (oldParentId) {
+                    updateParentTaskButtons(oldParentId);
                 }
                 
                 saveTasks();
@@ -869,12 +867,8 @@ function loadTasks() {
     tasks.filter(task => !task.isSubtask).forEach(task => {
         tasksList.appendChild(task.wrapper);
         
-        // Show collapse button if task has subtasks
-        const hasSubtasks = tasks.some(t => t.parentId === task.id);
-        const collapseBtn = task.element.querySelector('.task-collapse');
-        if (collapseBtn) {
-            collapseBtn.style.display = hasSubtasks ? 'block' : 'none';
-        }
+        // Update buttons based on subtasks
+        updateParentTaskButtons(task.id);
     });
     
     // Then add subtasks after their parent tasks
@@ -1166,4 +1160,21 @@ function loadCollapseState() {
             });
         }
     });
+}
+
+// Add this helper function after the Task class
+function updateParentTaskButtons(parentId) {
+    const parentTask = tasks.find(t => t.id === parentId);
+    if (parentTask) {
+        const hasSubtasks = tasks.some(t => t.parentId === parentId);
+        const collapseBtn = parentTask.element.querySelector('.task-collapse');
+        const deleteBtn = parentTask.element.querySelector('.task-delete');
+        
+        if (collapseBtn) {
+            collapseBtn.style.display = hasSubtasks ? 'block' : 'none';
+        }
+        if (deleteBtn) {
+            deleteBtn.style.display = hasSubtasks ? 'none' : 'block';
+        }
+    }
 } 
