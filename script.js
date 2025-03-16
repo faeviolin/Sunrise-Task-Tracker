@@ -338,6 +338,15 @@ class Task {
         content.className = 'task-content';
         content.textContent = this.text;
 
+        const collapseButton = document.createElement('button');
+        collapseButton.className = 'task-collapse';
+        collapseButton.innerHTML = '<i class="fas fa-chevron-down"></i>';
+        collapseButton.style.display = 'none'; // Hidden by default
+        collapseButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleSubtasks();
+        });
+
         const deleteButton = document.createElement('button');
         deleteButton.className = 'task-delete';
         deleteButton.innerHTML = '<i class="fas fa-times"></i>';
@@ -362,7 +371,12 @@ class Task {
         taskDiv.appendChild(checkbox);
         taskDiv.appendChild(content);
         
-        // Only add delete button to main tasks, not subtasks
+        // Only add collapse button to main tasks
+        if (!this.isSubtask) {
+            taskDiv.appendChild(collapseButton);
+        }
+        
+        // Only add delete button to main tasks
         if (!this.isSubtask) {
             taskDiv.appendChild(deleteButton);
         }
@@ -398,10 +412,16 @@ class Task {
                         this.wrapper.classList.add('is-subtask');
                         this.element.classList.add('is-subtask');
                         
-                        // Remove the delete button
+                        // Remove the delete button and collapse button
                         const deleteBtn = this.element.querySelector('.task-delete');
-                        if (deleteBtn) {
-                            deleteBtn.remove();
+                        const collapseBtn = this.element.querySelector('.task-collapse');
+                        if (deleteBtn) deleteBtn.remove();
+                        if (collapseBtn) collapseBtn.remove();
+                        
+                        // Show parent's collapse button
+                        const parentCollapseBtn = parentTask.element.querySelector('.task-collapse');
+                        if (parentCollapseBtn) {
+                            parentCollapseBtn.style.display = 'block';
                         }
                         
                         saveTasks();
@@ -416,7 +436,7 @@ class Task {
                 this.wrapper.classList.remove('is-subtask');
                 this.element.classList.remove('is-subtask');
                 
-                // Add the delete button back
+                // Add the delete button and collapse button back
                 if (!this.element.querySelector('.task-delete')) {
                     const deleteButton = document.createElement('button');
                     deleteButton.className = 'task-delete';
@@ -427,6 +447,28 @@ class Task {
                         saveTasks();
                     });
                     this.element.appendChild(deleteButton);
+                }
+                
+                const collapseButton = document.createElement('button');
+                collapseButton.className = 'task-collapse';
+                collapseButton.innerHTML = '<i class="fas fa-chevron-down"></i>';
+                collapseButton.style.display = 'none';
+                collapseButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleSubtasks();
+                });
+                this.element.insertBefore(collapseButton, this.element.querySelector('.task-delete'));
+                
+                // Update old parent's collapse button visibility
+                if (this.parentId) {
+                    const oldParent = tasks.find(t => t.id === this.parentId);
+                    if (oldParent) {
+                        const remainingSubtasks = tasks.filter(t => t.parentId === oldParent.id);
+                        const parentCollapseBtn = oldParent.element.querySelector('.task-collapse');
+                        if (parentCollapseBtn && remainingSubtasks.length === 0) {
+                            parentCollapseBtn.style.display = 'none';
+                        }
+                    }
                 }
                 
                 saveTasks();
@@ -455,6 +497,31 @@ class Task {
         });
 
         return taskDiv;
+    }
+    
+    toggleSubtasks() {
+        const subtasks = tasks.filter(t => t.parentId === this.id);
+        const collapseBtn = this.element.querySelector('.task-collapse i');
+        const isCollapsed = this.wrapper.classList.contains('collapsed');
+        
+        if (isCollapsed) {
+            // Expand
+            this.wrapper.classList.remove('collapsed');
+            collapseBtn.className = 'fas fa-chevron-down';
+            subtasks.forEach(subtask => {
+                subtask.wrapper.style.display = 'block';
+            });
+        } else {
+            // Collapse
+            this.wrapper.classList.add('collapsed');
+            collapseBtn.className = 'fas fa-chevron-right';
+            subtasks.forEach(subtask => {
+                subtask.wrapper.style.display = 'none';
+            });
+        }
+        
+        // Save collapse state
+        saveCollapseState();
     }
     
     startEditing(contentElement) {
@@ -801,6 +868,13 @@ function loadTasks() {
     // First add parent tasks
     tasks.filter(task => !task.isSubtask).forEach(task => {
         tasksList.appendChild(task.wrapper);
+        
+        // Show collapse button if task has subtasks
+        const hasSubtasks = tasks.some(t => t.parentId === task.id);
+        const collapseBtn = task.element.querySelector('.task-collapse');
+        if (collapseBtn) {
+            collapseBtn.style.display = hasSubtasks ? 'block' : 'none';
+        }
     });
     
     // Then add subtasks after their parent tasks
@@ -830,6 +904,9 @@ function loadTasks() {
             tasksList.appendChild(task.wrapper);
         }
     });
+    
+    // Load collapse state
+    loadCollapseState();
     
     // Update counter after loading tasks
     updateCompletedTasksCounter();
@@ -1061,4 +1138,32 @@ window.addEventListener('load', () => {
     loadMemos();
     loadCompletionState();
     updateCompletedTasksCounter();
-}); 
+});
+
+// Add these functions after the Task class
+function saveCollapseState() {
+    const collapseState = tasks
+        .filter(task => !task.isSubtask)
+        .reduce((state, task) => {
+            state[task.id] = task.wrapper.classList.contains('collapsed');
+            return state;
+        }, {});
+    localStorage.setItem('taskCollapseState', JSON.stringify(collapseState));
+}
+
+function loadCollapseState() {
+    const savedState = JSON.parse(localStorage.getItem('taskCollapseState') || '{}');
+    tasks.forEach(task => {
+        if (!task.isSubtask && savedState[task.id]) {
+            task.wrapper.classList.add('collapsed');
+            const collapseBtn = task.element.querySelector('.task-collapse i');
+            if (collapseBtn) {
+                collapseBtn.className = 'fas fa-chevron-right';
+            }
+            const subtasks = tasks.filter(t => t.parentId === task.id);
+            subtasks.forEach(subtask => {
+                subtask.wrapper.style.display = 'none';
+            });
+        }
+    });
+} 
