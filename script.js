@@ -351,29 +351,35 @@ class Task {
             });
         }
 
-        // Create delete button
-        const deleteButton = document.createElement('button');
-        deleteButton.className = 'task-delete';
-        deleteButton.innerHTML = '<i class="fas fa-times"></i>';
-        deleteButton.addEventListener('click', () => {
+        // Create delete button with separate variable name for clarity
+        const taskDeleteButton = document.createElement('button');
+        taskDeleteButton.className = 'task-delete';
+        taskDeleteButton.innerHTML = '<i class="fas fa-times"></i>';
+        
+        // Add a class to make subtask delete buttons easily identifiable 
+        if (this.isSubtask) {
+            taskDeleteButton.classList.add('subtask-delete');
+        }
+        
+        taskDeleteButton.addEventListener('click', (e) => {
+            // Prevent event bubbling
+            e.stopPropagation();
+            
             // Store task info before removal
             const taskId = this.id;
-            const parentId = this.parentId;
-            const isSubtask = this.isSubtask;
+            const parentId = this.isSubtask ? this.parentId : null;
             
-            // If we're deleting a parent task, handle its subtasks
-            if (!isSubtask) {
-                // Find all subtasks of this parent
-                const subtasks = tasks.filter(t => t.parentId === taskId);
-                
+            // Delete parent tasks and their subtasks differently
+            if (!this.isSubtask) {
                 // Make all subtasks standalone tasks
+                const subtasks = tasks.filter(t => t.parentId === taskId);
                 subtasks.forEach(subtask => {
                     subtask.isSubtask = false;
                     subtask.parentId = null;
                     subtask.wrapper.classList.remove('is-subtask');
                     subtask.element.classList.remove('is-subtask');
                     
-                    // Add collapse button back
+                    // Add collapse button
                     if (!subtask.element.querySelector('.task-collapse')) {
                         const collapseBtn = document.createElement('button');
                         collapseBtn.className = 'task-collapse';
@@ -386,34 +392,24 @@ class Task {
                         subtask.element.appendChild(collapseBtn);
                     }
                 });
-            }
-            
-            // If this is a subtask that's being deleted
-            if (isSubtask) {
-                // Remove this task from the array first (important to do this before finding next siblings)
-                tasks = tasks.filter(t => t.id !== taskId);
                 
-                // Get all subsequent siblings that are also subtasks of the same parent
-                const parentWrapper = tasks.find(t => t.id === parentId)?.wrapper;
-                if (parentWrapper) {
-                    // Rather than completely rebuilding all subtasks, just reposition them
-                    rerenderSubtasks(parentId);
-                }
-            } else {
-                // For non-subtasks, simply remove from the array
+                // Remove this task
                 tasks = tasks.filter(t => t.id !== taskId);
-            }
-            
-            // Remove from DOM
-            this.wrapper.remove();
-            
-            // Update parent's buttons if this was a subtask
-            if (isSubtask && parentId) {
-                const remainingSubtasks = tasks.filter(t => t.parentId === parentId);
-                if (remainingSubtasks.length === 0) {
-                    updateParentTaskButtons(parentId);
-                } else {
-                    reorderSubtasks(parentId);
+                this.wrapper.remove();
+            } else {
+                // This is a subtask - remove it first
+                tasks = tasks.filter(t => t.id !== taskId);
+                this.wrapper.remove();
+                
+                // Update parent if needed
+                if (parentId) {
+                    const remainingSubtasks = tasks.filter(t => t.parentId === parentId);
+                    if (remainingSubtasks.length === 0) {
+                        updateParentTaskButtons(parentId);
+                    } else {
+                        // IMPORTANT: Just update positions, don't recreate buttons
+                        rerenderSubtasks(parentId);
+                    }
                 }
             }
             
@@ -429,8 +425,8 @@ class Task {
             taskDiv.appendChild(collapseButton);
         }
         
-        // Add delete button to all tasks
-        taskDiv.appendChild(deleteButton);
+        // Add delete button to ALL tasks (both main and subtasks)
+        taskDiv.appendChild(taskDeleteButton);
 
         // Drag and drop functionality for vertical reordering and subtask creation
         let startX = 0;
@@ -456,31 +452,79 @@ class Task {
                     const parentTask = tasks.find(t => t.id === parentId);
                     
                     if (parentTask) {
-                        // COMPLETELY NEW APPROACH: Direct DOM manipulation only
+                        console.log("Converting task to subtask");
                         
-                        // First, remove this element from DOM
+                        // STEP 1: Log the state of existing subtasks before any changes
+                        const existingSubtasks = tasks.filter(t => t.parentId === parentId);
+                        console.log("Existing subtasks before conversion:", existingSubtasks.length);
+                        existingSubtasks.forEach(subtask => {
+                            console.log(`Subtask ${subtask.id} has delete button: ${!!subtask.element.querySelector('.task-delete')}`);
+                        });
+                        
+                        // STEP 2: Remove this task element from DOM
                         tasksList.removeChild(this.wrapper);
                         
-                        // Update the data model
+                        // STEP 3: Update the data model
                         this.isSubtask = true;
                         this.parentId = parentId;
                         
-                        // Update the UI
+                        // STEP 4: Update the visual appearance
                         this.wrapper.classList.add('is-subtask');
                         this.element.classList.add('is-subtask');
                         
-                        // Remove the collapse button
+                        // STEP 5: Remove the collapse button
                         const collapseBtn = this.element.querySelector('.task-collapse');
                         if (collapseBtn) collapseBtn.remove();
                         
-                        // Update parent task's buttons
+                        // STEP 6: Make sure this new subtask has a delete button
+                        if (!this.element.querySelector('.task-delete')) {
+                            console.log("Adding delete button to new subtask");
+                            
+                            const deleteBtn = document.createElement('button');
+                            deleteBtn.className = 'task-delete';
+                            deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
+                            
+                            deleteBtn.addEventListener('click', function(event) {
+                                event.stopPropagation();
+                                console.log("Delete button clicked");
+                                
+                                const taskElement = this.closest('.task-wrapper');
+                                const taskId = parseInt(taskElement.dataset.taskId);
+                                const task = tasks.find(t => t.id === taskId);
+                                
+                                if (task) {
+                                    const parentId = task.parentId;
+                                    
+                                    // Remove from data model
+                                    tasks = tasks.filter(t => t.id !== taskId);
+                                    
+                                    // Remove from DOM
+                                    taskElement.remove();
+                                    
+                                    // Update parent if needed
+                                    if (parentId) {
+                                        const remainingSubtasks = tasks.filter(t => t.parentId === parentId);
+                                        if (remainingSubtasks.length === 0) {
+                                            updateParentTaskButtons(parentId);
+                                        }
+                                    }
+                                    
+                                    saveTasks();
+                                    updateCompletedTasksCounter();
+                                }
+                            });
+                            
+                            this.element.appendChild(deleteBtn);
+                        }
+                        
+                        // STEP 7: Update parent task's buttons
                         updateParentTaskButtons(parentId);
                         
-                        // Now find where to insert it
-                        const allSubtasks = tasks.filter(t => t.parentId === parentId && t.id !== this.id);
+                        // STEP 8: Find where to insert the new subtask
+                        const updatedSubtasks = tasks.filter(t => t.parentId === parentId && t.id !== this.id);
                         
-                        if (allSubtasks.length === 0) {
-                            // If this is the first subtask, insert right after parent
+                        if (updatedSubtasks.length === 0) {
+                            // This is the first subtask, insert right after parent
                             if (parentTask.wrapper.nextSibling) {
                                 tasksList.insertBefore(this.wrapper, parentTask.wrapper.nextSibling);
                             } else {
@@ -488,19 +532,25 @@ class Task {
                             }
                         } else {
                             // Find the last subtask in the DOM
-                            const lastSubtask = allSubtasks.reduce((last, current) => {
-                                if (!last || !last.wrapper) return current;
-                                if (!current.wrapper) return last;
-                                
-                                const lastIndex = Array.from(tasksList.children).indexOf(last.wrapper);
-                                const currentIndex = Array.from(tasksList.children).indexOf(current.wrapper);
-                                
-                                return currentIndex > lastIndex ? current : last;
-                            }, null);
+                            let lastSubtaskWrapper = null;
+                            updatedSubtasks.forEach(subtask => {
+                                if (subtask.wrapper && document.body.contains(subtask.wrapper)) {
+                                    if (!lastSubtaskWrapper) {
+                                        lastSubtaskWrapper = subtask.wrapper;
+                                    } else {
+                                        const currentIdx = Array.from(tasksList.children).indexOf(subtask.wrapper);
+                                        const lastIdx = Array.from(tasksList.children).indexOf(lastSubtaskWrapper);
+                                        if (currentIdx > lastIdx) {
+                                            lastSubtaskWrapper = subtask.wrapper;
+                                        }
+                                    }
+                                }
+                            });
                             
-                            if (lastSubtask && lastSubtask.wrapper) {
-                                if (lastSubtask.wrapper.nextSibling) {
-                                    tasksList.insertBefore(this.wrapper, lastSubtask.wrapper.nextSibling);
+                            if (lastSubtaskWrapper) {
+                                // Insert after the last subtask
+                                if (lastSubtaskWrapper.nextSibling) {
+                                    tasksList.insertBefore(this.wrapper, lastSubtaskWrapper.nextSibling);
                                 } else {
                                     tasksList.appendChild(this.wrapper);
                                 }
@@ -514,11 +564,17 @@ class Task {
                             }
                         }
                         
+                        // STEP 9: Log the state of all subtasks after changes
+                        console.log("All subtasks after conversion:");
+                        tasks.filter(t => t.parentId === parentId).forEach(subtask => {
+                            console.log(`Subtask ${subtask.id} has delete button: ${!!subtask.element.querySelector('.task-delete')}`);
+                        });
+                        
                         saveTasks();
                     }
                 }
             }
-            
+
             // If dragged significantly to the left and it's a subtask, make it a standalone task
             if (deltaX < -50 && this.isSubtask) {
                 const oldParentId = this.parentId;
@@ -557,7 +613,7 @@ class Task {
                 // Update old parent's buttons and reorder its subtasks
                 if (oldParentId) {
                     updateParentTaskButtons(oldParentId);
-                    reorderSubtasks(oldParentId);
+                    rerenderSubtasks(oldParentId);
                 }
                 
                 saveTasks();
@@ -998,6 +1054,46 @@ function loadTasks() {
     
     // Load collapse state
     loadCollapseState();
+    
+    // IMPORTANT FIX: Make sure all subtasks have delete buttons
+    tasks.filter(task => task.isSubtask).forEach(subtask => {
+        // Verify and ensure this subtask has a delete button
+        if (!subtask.element.querySelector('.task-delete')) {
+            console.log(`Adding missing delete button to subtask ${subtask.id}`);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'task-delete';
+            deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
+            
+            deleteBtn.addEventListener('click', function(event) {
+                event.stopPropagation();
+                
+                const taskId = subtask.id;
+                const parentId = subtask.parentId;
+                
+                // Remove from data model
+                tasks = tasks.filter(t => t.id !== taskId);
+                
+                // Remove from DOM
+                subtask.wrapper.remove();
+                
+                // Update parent if needed
+                if (parentId) {
+                    const remainingSubtasks = tasks.filter(t => t.parentId === parentId);
+                    if (remainingSubtasks.length === 0) {
+                        updateParentTaskButtons(parentId);
+                    } else {
+                        rerenderSubtasks(parentId);
+                    }
+                }
+                
+                saveTasks();
+                updateCompletedTasksCounter();
+            });
+            
+            subtask.element.appendChild(deleteBtn);
+        }
+    });
     
     // Update counter after loading tasks
     updateCompletedTasksCounter();
